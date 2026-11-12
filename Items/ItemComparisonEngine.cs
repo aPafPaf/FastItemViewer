@@ -85,8 +85,15 @@ public sealed class ItemComparisonEngine
         switch (kind)
         {
             case EquipSlotKind.Ring:
-                result.Add(CreateTarget(candidate, "Ring 1", "R1", _equipped.Ring1));
-                result.Add(CreateTarget(candidate, "Ring 2", "R2", _equipped.Ring2));
+                if (_equipped.Ring1 == null && _equipped.Ring2 == null)
+                {
+                    result.Add(CreateTarget(candidate, "Ring", "Ring"));
+                }
+                else
+                {
+                    result.Add(CreateTarget(candidate, "Ring 1", "R1", _equipped.Ring1));
+                    result.Add(CreateTarget(candidate, "Ring 2", "R2", _equipped.Ring2));
+                }
                 break;
 
             case EquipSlotKind.OneHandWeapon:
@@ -226,7 +233,8 @@ public sealed class ItemComparisonEngine
                 Delta = delta,
                 OldValue = oldValue,
                 NewValue = newValue,
-                Priority = definition.Priority
+                Priority = definition.Priority,
+                Element = StatCatalog.GetResistanceElement(definition.Projection)
             });
 
             slot.Score += (int)Math.Round(GetScoreDelta(definition, delta) * definition.ScoreWeight);

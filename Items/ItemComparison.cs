@@ -2,6 +2,15 @@ using System.Collections.Generic;
 
 namespace FastItemViewer.Items;
 
+public enum ResistanceElement
+{
+    None,
+    Fire,
+    Cold,
+    Lightning,
+    Chaos
+}
+
 public sealed class ItemComparison
 {
     public ItemSnapshot Candidate { get; set; }
@@ -50,6 +59,7 @@ public sealed class StatLine
     public int NewValue { get; set; }
     public int Priority { get; set; }
 
+    public ResistanceElement Element { get; set; } = ResistanceElement.None;
     public bool IsTotal { get; set; }
     public bool IsWarning { get; set; }
 }

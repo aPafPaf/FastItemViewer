@@ -172,6 +172,18 @@ public static class StatCatalog
 
     public static readonly HashSet<GameStat> KnownStats = BuildKnownStats();
 
+    public static ResistanceElement GetResistanceElement(ProjectionKind projection)
+    {
+        return projection switch
+        {
+            ProjectionKind.FireResistance or ProjectionKind.MaxFireResistance => ResistanceElement.Fire,
+            ProjectionKind.ColdResistance or ProjectionKind.MaxColdResistance => ResistanceElement.Cold,
+            ProjectionKind.LightningResistance or ProjectionKind.MaxLightningResistance => ResistanceElement.Lightning,
+            ProjectionKind.ChaosResistance or ProjectionKind.MaxChaosResistance => ResistanceElement.Chaos,
+            _ => ResistanceElement.None
+        };
+    }
+
     private static StatDefinition Def(
         string id,
         string labelRu,

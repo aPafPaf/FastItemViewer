@@ -124,9 +124,16 @@ public static class ItemOverlayRenderer
 
             foreach (var line in targetLines)
             {
+                var suffix = line.Element != ResistanceElement.None ? line.Label : null;
+                var suffixColor = line.Element != ResistanceElement.None
+                    ? GetResistanceColor(settings, line.Element)
+                    : (Color?)null;
+
                 lines.Add(new OverlayLine(
                     prefix + line.CompactText,
-                    line.IsWarning ? settings.WarningColor.Value : GetDeltaColor(settings, line.Delta)));
+                    line.IsWarning ? settings.WarningColor.Value : GetDeltaColor(settings, line.Delta),
+                    suffix,
+                    suffixColor));
             }
         }
 
@@ -163,11 +170,26 @@ public static class ItemOverlayRenderer
 
             for (var i = 0; i < lines.Count; i++)
             {
-                graphics.DrawText(
-                    lines[i].Text,
-                    new Vector2(background.X + 3, background.Y + 2 + i * lineHeight),
-                    lines[i].Color,
-                    FontAlign.Left);
+                var line = lines[i];
+                var position = new Vector2(background.X + 3, background.Y + 2 + i * lineHeight);
+
+                if (!string.IsNullOrEmpty(line.Suffix) &&
+                    line.SuffixColor.HasValue &&
+                    line.Text.EndsWith(line.Suffix, StringComparison.Ordinal))
+                {
+                    var prefixText = line.Text[..^line.Suffix.Length];
+                    var prefixWidth = graphics.MeasureText(prefixText).X;
+                    graphics.DrawText(prefixText, position, line.Color, FontAlign.Left);
+                    graphics.DrawText(
+                        line.Suffix,
+                        new Vector2(position.X + prefixWidth, position.Y),
+                        line.SuffixColor.Value,
+                        FontAlign.Left);
+                }
+                else
+                {
+                    graphics.DrawText(line.Text, position, line.Color, FontAlign.Left);
+                }
             }
         }
     }
@@ -238,9 +260,19 @@ public static class ItemOverlayRenderer
 
                 foreach (var line in target.Lines)
                 {
+                    var labelPrefix = line.Element != ResistanceElement.None
+                        ? $"{line.Label}:"
+                        : null;
+
+                    var labelColor = line.Element != ResistanceElement.None
+                        ? GetResistanceColor(settings, line.Element)
+                        : (Color?)null;
+
                     lines.Add(new PanelLine(
                         line.DetailText,
-                        line.IsWarning ? settings.WarningColor.Value : GetDeltaColor(settings, line.Delta)));
+                        line.IsWarning ? settings.WarningColor.Value : GetDeltaColor(settings, line.Delta),
+                        labelPrefix,
+                        labelColor));
                 }
 
                 foreach (var flag in target.Flags)
@@ -281,8 +313,15 @@ public static class ItemOverlayRenderer
             var wrapped = new List<PanelLine>();
             foreach (var line in lines)
             {
-                foreach (var piece in TextWrapper.Wrap(graphics, new[] { line.Text }, maxTextWidth))
-                    wrapped.Add(new PanelLine(piece, line.Color));
+                var pieces = TextWrapper.Wrap(graphics, new[] { line.Text }, maxTextWidth);
+                for (var p = 0; p < pieces.Count; p++)
+                {
+                    wrapped.Add(new PanelLine(
+                        pieces[p],
+                        line.Color,
+                        p == 0 ? line.LabelPrefix : null,
+                        p == 0 ? line.LabelColor : null));
+                }
             }
 
             var maxPanelLines = Math.Max(1, (int)((screenHeight - 8f) / lineHeight));
@@ -313,11 +352,25 @@ public static class ItemOverlayRenderer
 
             for (var i = 0; i < wrapped.Count; i++)
             {
-                graphics.DrawText(
-                    wrapped[i].Text,
-                    new Vector2(panelRect.X + padding, panelRect.Y + padding + i * lineHeight),
-                    wrapped[i].Color,
-                    FontAlign.Left);
+                var line = wrapped[i];
+                var position = new Vector2(panelRect.X + padding, panelRect.Y + padding + i * lineHeight);
+
+                if (!string.IsNullOrEmpty(line.LabelPrefix) &&
+                    line.LabelColor.HasValue &&
+                    line.Text.StartsWith(line.LabelPrefix, StringComparison.Ordinal))
+                {
+                    var prefixWidth = graphics.MeasureText(line.LabelPrefix).X;
+                    graphics.DrawText(line.LabelPrefix, position, line.LabelColor.Value, FontAlign.Left);
+                    graphics.DrawText(
+                        line.Text[line.LabelPrefix.Length..],
+                        new Vector2(position.X + prefixWidth, position.Y),
+                        line.Color,
+                        FontAlign.Left);
+                }
+                else
+                {
+                    graphics.DrawText(line.Text, position, line.Color, FontAlign.Left);
+                }
             }
         }
     }
@@ -340,39 +393,39 @@ public static class ItemOverlayRenderer
         {
             AddResistance(
                 result, settings,
-                "Fire",
+                "Fire", ResistanceElement.Fire,
                 player.FireResistance,
                 Delta(ProjectionKind.FireResistance),
                 player.MaxFireResistance > 0 ? player.MaxFireResistance : 75);
 
             AddResistance(
                 result, settings,
-                "Cold",
+                "Cold", ResistanceElement.Cold,
                 player.ColdResistance,
                 Delta(ProjectionKind.ColdResistance),
                 player.MaxColdResistance > 0 ? player.MaxColdResistance : 75);
 
             AddResistance(
                 result, settings,
-                "Lightning",
+                "Lightning", ResistanceElement.Lightning,
                 player.LightningResistance,
                 Delta(ProjectionKind.LightningResistance),
                 player.MaxLightningResistance > 0 ? player.MaxLightningResistance : 75);
 
             AddResistance(
                 result, settings,
-                "Chaos",
+                "Chaos", ResistanceElement.Chaos,
                 player.ChaosResistance,
                 Delta(ProjectionKind.ChaosResistance),
                 player.MaxChaosResistance > 0 ? player.MaxChaosResistance : 60);
 
-            AddMaxResistance(result, settings, "Max Fire",
+            AddMaxResistance(result, settings, "Max Fire", ResistanceElement.Fire,
                 player.MaxFireResistance, Delta(ProjectionKind.MaxFireResistance));
-            AddMaxResistance(result, settings, "Max Cold",
+            AddMaxResistance(result, settings, "Max Cold", ResistanceElement.Cold,
                 player.MaxColdResistance, Delta(ProjectionKind.MaxColdResistance));
-            AddMaxResistance(result, settings, "Max Lightning",
+            AddMaxResistance(result, settings, "Max Lightning", ResistanceElement.Lightning,
                 player.MaxLightningResistance, Delta(ProjectionKind.MaxLightningResistance));
-            AddMaxResistance(result, settings, "Max Chaos",
+            AddMaxResistance(result, settings, "Max Chaos", ResistanceElement.Chaos,
                 player.MaxChaosResistance, Delta(ProjectionKind.MaxChaosResistance));
         }
 
@@ -418,6 +471,7 @@ public static class ItemOverlayRenderer
         List<PanelLine> lines,
         FastItemViewerSettings settings,
         string label,
+        ResistanceElement element,
         int before,
         int delta,
         int cap)
@@ -426,19 +480,20 @@ public static class ItemOverlayRenderer
             return;
 
         var after = before + delta;
-        var color = after < cap
-            ? settings.NegativeColor.Value
-            : delta > 0
-                ? settings.PositiveColor.Value
-                : settings.NeutralColor.Value;
+        var color = GetDeltaColor(settings, delta);
 
-        lines.Add(new PanelLine($"{label}: {before} -> {after} ({FormatSigned(delta)}) cap {cap}", color));
+        lines.Add(new PanelLine(
+            $"{label}: {before} -> {after} ({FormatSigned(delta)}) cap {cap}",
+            color,
+            $"{label}:",
+            GetResistanceColor(settings, element)));
     }
 
     private static void AddMaxResistance(
         List<PanelLine> lines,
         FastItemViewerSettings settings,
         string label,
+        ResistanceElement element,
         int before,
         int delta)
     {
@@ -447,7 +502,9 @@ public static class ItemOverlayRenderer
 
         lines.Add(new PanelLine(
             $"{label}: {before} -> {before + delta} ({FormatSigned(delta)})",
-            GetDeltaColor(settings, delta)));
+            GetDeltaColor(settings, delta),
+            $"{label}:",
+            GetResistanceColor(settings, element)));
     }
 
     private static void AddProjectedTotal(
@@ -538,11 +595,52 @@ public static class ItemOverlayRenderer
                 : settings.NeutralColor.Value;
     }
 
+    private static Color GetResistanceColor(FastItemViewerSettings settings, ResistanceElement element)
+    {
+        return element switch
+        {
+            ResistanceElement.Fire => settings.FireResistanceColor.Value,
+            ResistanceElement.Cold => settings.ColdResistanceColor.Value,
+            ResistanceElement.Lightning => settings.LightningResistanceColor.Value,
+            ResistanceElement.Chaos => settings.ChaosResistanceColor.Value,
+            _ => settings.NeutralColor.Value
+        };
+    }
+
     private static string FormatSigned(int value)
     {
         return value > 0 ? $"+{value}" : value.ToString();
     }
 
-    private readonly record struct OverlayLine(string Text, Color Color);
-    private readonly record struct PanelLine(string Text, Color Color);
+    private sealed class OverlayLine
+    {
+        public OverlayLine(string text, Color color, string suffix = null, Color? suffixColor = null)
+        {
+            Text = text;
+            Color = color;
+            Suffix = suffix;
+            SuffixColor = suffixColor;
+        }
+
+        public string Text { get; }
+        public Color Color { get; }
+        public string Suffix { get; }
+        public Color? SuffixColor { get; }
+    }
+
+    private sealed class PanelLine
+    {
+        public PanelLine(string text, Color color, string labelPrefix = null, Color? labelColor = null)
+        {
+            Text = text;
+            Color = color;
+            LabelPrefix = labelPrefix;
+            LabelColor = labelColor;
+        }
+
+        public string Text { get; }
+        public Color Color { get; }
+        public string LabelPrefix { get; }
+        public Color? LabelColor { get; }
+    }
 }

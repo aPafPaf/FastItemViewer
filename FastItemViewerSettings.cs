@@ -34,6 +34,10 @@ public class FastItemViewerSettings : ISettings
     public ColorNode PositiveColor { get; set; } = new(new Color(90, 230, 90, 255));
     public ColorNode NegativeColor { get; set; } = new(new Color(240, 90, 90, 255));
     public ColorNode NeutralColor { get; set; } = new(new Color(210, 210, 210, 255));
+    public ColorNode FireResistanceColor { get; set; } = new(new Color(255, 120, 70, 255));
+    public ColorNode ColdResistanceColor { get; set; } = new(new Color(90, 190, 255, 255));
+    public ColorNode LightningResistanceColor { get; set; } = new(new Color(255, 235, 90, 255));
+    public ColorNode ChaosResistanceColor { get; set; } = new(new Color(190, 110, 255, 255));
     public ColorNode HeaderColor { get; set; } = new(new Color(255, 215, 120, 255));
     public ColorNode WarningColor { get; set; } = new(new Color(255, 165, 70, 255));
     public ColorNode PanelBackgroundColor { get; set; } = new(new Color(10, 10, 10, 225));
